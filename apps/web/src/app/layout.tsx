@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 import { siteConfig } from '@/constant/config';
 import React from 'react';
 import { Providers } from '@/app/providers';
-
-const inter = Inter({ subsets: ['latin'] });
+import { Poppins } from '@next/font/google';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -44,13 +42,19 @@ export const metadata: Metadata = {
   ],
 };
 
+const popins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
+});
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html>
+    <html lang={'en'} className={`${popins.variable} font-sans`}>
       <body>
         <Providers>{children}</Providers>
       </body>

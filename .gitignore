@@ -40,3 +40,5 @@ yarn-error.log*
 # Editor directories
 .idea
 /**/*/.idea
+pnpm-lock.yaml
+/.idea

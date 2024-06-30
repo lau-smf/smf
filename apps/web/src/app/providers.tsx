@@ -5,7 +5,6 @@ import {
   QueryClientProvider,
   QueryOptions,
 } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import * as React from 'react';
 import { ReactQueryStreamedHydration } from '@tanstack/react-query-next-experimental';
 import DismissableToast from '@/components/DismissableToast';
@@ -15,6 +14,7 @@ import axiosClient from '@/utils/axios';
 import BaseDialog from '@/components/dialog/BaseDialog';
 
 import useDialogStore from '@/store/useDialogStore';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 const defaultQueryFn = async ({ queryKey }: QueryOptions) => {
   const { data } = await axiosClient.get(`${queryKey?.[0]}`);

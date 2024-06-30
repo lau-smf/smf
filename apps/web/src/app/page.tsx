@@ -4,55 +4,71 @@ import Head from 'next/head';
 import * as React from 'react';
 import '@/utils/env';
 
-import ArrowLink from '@/components/links/ArrowLink';
-import ButtonLink from '@/components/links/ButtonLink';
-import UnderlineLink from '@/components/links/UnderlineLink';
-import UnstyledLink from '@/components/links/UnstyledLink';
-
 import '@/styles/globals.css';
-
-import Logo from '~/svg/Logo.svg';
+import { Glow } from '@/components/hero/Glow';
+import { StarField } from '@/components/hero/StarField';
+import { MusicPlayer } from '@/components/hero/MusicPlayer';
+import { HorizontalTimeline } from '@/components/hero/Timeline';
+import { HeroComponent } from '@/Hero';
+import { RadioGroupComponent } from '@/components/RadioGroupComponent';
+import { useGlobalStore } from '@/store/useGlobalStore';
+import { cn } from '@/utils/twcn';
+import { ShootingStar } from '@/components/star/Star';
 
 export default function HomePage() {
-  return (
-    <main>
-      <Head>
-        <title>Hi</title>
-      </Head>
-      <section className='bg-white'>
-        <div className='layout relative flex min-h-screen flex-col items-center justify-center py-12 text-center'>
-          <Logo className='w-16' />
-          <h1 className='mt-4'>Next.js + Tailwind CSS + TypeScript Starter</h1>
-          <p className='mt-2 text-sm text-gray-800'>
-            A starter for Next.js, Tailwind CSS, and TypeScript with Absolute
-            Import, Seo, Link component, pre-configured with Husky{' '}
-          </p>
-          <p className='mt-2 text-sm text-gray-700'>
-            <ArrowLink href='https://github.com/theodorusclarence/ts-nextjs-tailwind-starter'>
-              See the repository
-            </ArrowLink>
-          </p>
-          <ButtonLink className='mt-6' href='/components' variant='light'>
-            See all components
-          </ButtonLink>
+  const experience = useGlobalStore.useExperience();
 
-          <UnstyledLink
-            href='https://vercel.com/new/git/external?repository-url=https%3A%2F%2Fgithub.com%2Ftheodorusclarence%2Fts-nextjs-tailwind-starter'
-            className='mt-4'
+  return (
+    <main className={'overflow-y-hidden'}>
+      <Head>
+        <title>Home</title>
+      </Head>
+      <section
+        className={
+          'relative w-screen h-screen flex flex-col items-center justify-center'
+        }
+      >
+        <ShootingStar />
+        <Glow />
+        <StarField />
+        <MusicPlayer />
+        {experience ? (
+          <div
+            className={cn(
+              'w-1/2 h-[70vh] overflow-y-scroll scrollbar-thin scrollbar-thumb-white scrollbar-track-transparent',
+              'scrollbar-thumb-rounded-lg scrollbar-thumb-rounded-full scrollbar-track-rounded-full',
+            )}
           >
-            <img
-              width='92'
-              height='32'
-              src='https://vercel.com/button'
-              alt='Deploy with Vercel'
+            <RadioGroupComponent
+              question={'hello world'}
+              answers={[
+                'something',
+                'something1',
+                'something2',
+                'something3',
+                'something4',
+                'something5',
+                'something6',
+              ]}
             />
-          </UnstyledLink>
-          <footer className='absolute bottom-2 text-gray-700'>
-            © {new Date().getFullYear()} By{' '}
-            <UnderlineLink href='https://theodorusclarence.com?ref=tsnextstarter'>
-              Theodorus Clarence
-            </UnderlineLink>
-          </footer>
+          </div>
+        ) : (
+          <HeroComponent />
+        )}
+      </section>
+      <section
+        className={'relative p-4 text-white h-screen w-screen bg-gray-950'}
+      >
+        <HorizontalTimeline />
+        <div className='absolute top-0 inset-y-full right-0 bg-gradient-to-r from-transparent via-blue-500 to-transparent w-full h-px' />
+        <div className={'h-full'}>
+          <div className={'flex flex-col items-center justify-center h-full'}>
+            <p className={'text-center text-white'}>
+              Place holder for section two of the page, should be horizontally
+              scrollable, and the menu should appear on the y-axis of the
+              screen. The screens height should be decreased to less than 100vh.
+            </p>
+          </div>
         </div>
       </section>
     </main>

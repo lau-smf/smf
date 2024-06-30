@@ -5,12 +5,14 @@ export default {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      transformOrigin: {
+        '0': '0%',
+      },
       fontFamily: {
-        primary: ['Inter', ...defaultTheme.fontFamily.sans],
+        primary: ['var(--font-poppins)', ...defaultTheme.fontFamily.sans],
       },
       colors: {
         primary: {
-          // Customize it on globals.css :root
           50: 'rgb(var(--tw-color-primary-50) / <alpha-value>)',
           100: 'rgb(var(--tw-color-primary-100) / <alpha-value>)',
           200: 'rgb(var(--tw-color-primary-200) / <alpha-value>)',
@@ -25,6 +27,9 @@ export default {
         },
         dark: '#222222',
       },
+      transitionTimingFunction: {
+        custom: 'cubic-bezier(.5, 1, .89, 1)',
+      },
       keyframes: {
         flicker: {
           '0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100%': {
@@ -35,6 +40,14 @@ export default {
           '20%, 21.999%, 63%, 63.999%, 65%, 69.999%': {
             opacity: '0.4',
             filter: 'none',
+          },
+        },
+        dotsRotation: {
+          '0%': {
+            transform: 'rotate(0)',
+          },
+          '100%': {
+            transform: 'rotate(360deg)',
           },
         },
         shimmer: {
@@ -49,8 +62,13 @@ export default {
       animation: {
         flicker: 'flicker 3s linear infinite',
         shimmer: 'shimmer 1.3s linear infinite',
+        dots: 'dotsRotation 120s infinite linear',
       },
     },
   },
-  plugins: [require('@tailwindcss/forms')],
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('tailwindcss-3d'),
+    require('tailwind-scrollbar'),
+  ],
 } satisfies Config;
