@@ -15,6 +15,16 @@ import { ShootingStar } from '@/components/star/Star';
 import { BlurredGeometricBackground } from '@/components/BlurredGeometricBackground';
 import { useEffect, useRef, useState } from 'react';
 import { SectionBackground } from '@/components/SectionBackgroundComponent';
+import { IoSend } from 'react-icons/io5';
+
+// Structure for section questions
+interface SectionQuestion {
+  title: string;
+  question: string;
+  placeholder: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
 
 export default function HomePage() {
   const experience = useGlobalStore.useExperience();
@@ -26,6 +36,76 @@ export default function HomePage() {
   const [currentSection, setCurrentSection] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const totalSections = 3; // Update this based on your actual number of sections
+
+  // State for section answers
+  const [sectionInputs, setSectionInputs] = useState(['', '', '']);
+
+  // Define the questions and colors for each section
+  const sectionQuestions: SectionQuestion[] = [
+    {
+      title: 'Your Experience',
+      question: 'What brings you joy in your daily life?',
+      placeholder: 'Share your thoughts...',
+      gradientFrom: '#3B82F6', // Blue
+      gradientTo: '#60A5FA',
+    },
+    {
+      title: 'Your Goals',
+      question: "What's one goal you'd like to achieve this year?",
+      placeholder: 'Type your goal here...',
+      gradientFrom: '#10B981', // Green
+      gradientTo: '#34D399',
+    },
+    {
+      title: 'Your Values',
+      question: 'What value do you cherish the most and why?',
+      placeholder: 'Explain your values...',
+      gradientFrom: '#8B5CF6', // Purple
+      gradientTo: '#A78BFA',
+    },
+  ];
+
+  // Handle input changes
+  const handleInputChange = (sectionIndex: number, value: string) => {
+    const newInputs = [...sectionInputs];
+    newInputs[sectionIndex] = value;
+    setSectionInputs(newInputs);
+  };
+
+  // Handle form submission for each section
+  const handleSubmit = (sectionIndex: number) => {
+    if (sectionInputs[sectionIndex].trim()) {
+      // Handle the submission (can be expanded later)
+      console.log(
+        `Section ${sectionIndex + 1} answer:`,
+        sectionInputs[sectionIndex],
+      );
+
+      // Clear the input after submission
+      const newInputs = [...sectionInputs];
+      newInputs[sectionIndex] = '';
+      setSectionInputs(newInputs);
+
+      // Show a success message or proceed to next section
+      if (sectionIndex < totalSections - 1) {
+        // Move to next section if not on the last one
+        setCurrentSection(sectionIndex + 1);
+        sectionsWrapperRef.current!.style.transform = `translateX(-${(sectionIndex + 1) * 100}vw)`;
+        updateTimeline((sectionIndex + 1) / (totalSections - 1));
+
+        // Update active navigation dot
+        document.querySelectorAll('nav button').forEach((btn, index) => {
+          if (index === sectionIndex + 1) {
+            btn.classList.remove('bg-gray-500');
+            btn.classList.add('bg-blue-500');
+          } else {
+            btn.classList.remove('bg-blue-500');
+            btn.classList.add('bg-gray-500');
+          }
+        });
+      }
+    }
+  };
 
   // Effect for auto-scrolling to animation section when experience starts
   useEffect(() => {
@@ -205,48 +285,56 @@ export default function HomePage() {
           id='sections-wrapper'
           ref={sectionsWrapperRef}
         >
-          <section
-            className='relative p-4 text-white h-full w-screen flex-shrink-0 overflow-hidden bg-gray-950'
-            id='section-1'
-          >
-            <div className='h-full relative z-10'>
-              <div className='flex flex-col items-center justify-center h-full'>
-                <h2 className='text-3xl font-bold mb-4'>Section One</h2>
-                <p className='text-center text-white'>
-                  Use the scroll wheel to navigate horizontally between
-                  sections.
-                </p>
-              </div>
-            </div>
-          </section>
+          {sectionQuestions.map((sectionData, index) => (
+            <section
+              key={index}
+              className='relative p-4 text-white h-full w-screen flex-shrink-0 overflow-hidden bg-gray-950'
+              id={`section-${index + 1}`}
+            >
+              <div className='h-full relative z-10'>
+                <div className='flex flex-col items-center justify-center h-full max-w-2xl mx-auto'>
+                  <h2 className='text-3xl font-bold mb-4'>
+                    {sectionData.title}
+                  </h2>
 
-          <section
-            className='relative p-4 text-white h-full w-screen flex-shrink-0 overflow-hidden bg-gray-950'
-            id='section-2'
-          >
-            <div className='h-full relative z-10'>
-              <div className='flex flex-col items-center justify-center h-full'>
-                <h2 className='text-3xl font-bold mb-4'>Section Two</h2>
-                <p className='text-center text-white'>
-                  This is the second section. Continue scrolling to see more.
-                </p>
-              </div>
-            </div>
-          </section>
+                  <div className='w-full p-6 bg-black/30 backdrop-blur-md rounded-xl mb-8 shadow-xl'>
+                    <h3 className='text-xl mb-4'>{sectionData.question}</h3>
 
-          <section
-            className='relative p-4 text-white h-full w-screen flex-shrink-0 overflow-hidden bg-gray-950'
-            id='section-3'
-          >
-            <div className='h-full relative z-10'>
-              <div className='flex flex-col items-center justify-center h-full'>
-                <h2 className='text-3xl font-bold mb-4'>Section Three</h2>
-                <p className='text-center text-white'>
-                  This is the third section of the horizontal layout.
-                </p>
+                    <div className='flex'>
+                      <input
+                        type='text'
+                        value={sectionInputs[index]}
+                        onChange={(e) =>
+                          handleInputChange(index, e.target.value)
+                        }
+                        placeholder={sectionData.placeholder}
+                        className='flex-grow px-4 py-3 bg-black/50 text-white border border-white/20 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-white/50'
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSubmit(index);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSubmit(index)}
+                        className='px-4 py-3 rounded-r-lg transition-all duration-300 flex items-center justify-center'
+                        style={{
+                          background: `linear-gradient(to right, ${sectionData.gradientFrom}, ${sectionData.gradientTo})`,
+                        }}
+                        aria-label='Send'
+                      >
+                        <IoSend className='text-white text-xl' />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className='text-center text-white/70 text-sm'>
+                    Scroll or use the navigation dots to move between sections
+                  </p>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          ))}
         </div>
 
         <nav className='fixed top-1/2 right-4 -translate-y-1/2 z-10 flex flex-col space-y-4'>
