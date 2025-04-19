@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import * as React from 'react';
+import { Circle, Square, Triangle } from 'lucide-react';
 
 export function Timeline() {
   // Original Timeline implementation
@@ -33,6 +34,8 @@ export const HorizontalTimeline = () => {
   const teethRef = useRef<SVGGElement>(null);
   const gradientRef = useRef<SVGLinearGradientElement>(null);
   const lastProgressRef = useRef(0);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const [activeSection, setActiveSection] = useState(0);
 
   // Define section colors that match the SectionBackground colors
   const sectionGradients = [
@@ -228,6 +231,13 @@ export const HorizontalTimeline = () => {
           `background: linear-gradient(to right, transparent, ${interpolatedColors[1]}, transparent)`,
         );
       }
+
+      // Update active section for icon display
+      const totalSections = 3;
+      setActiveSection(Math.round(progress * (totalSections - 1)));
+
+      // Update section icons positions
+      updateSectionIcons(progress);
     };
 
     document.addEventListener(
@@ -239,6 +249,7 @@ export const HorizontalTimeline = () => {
     const handleResize = () => {
       if (teethRef.current) {
         updateTeethSizes(lastProgressRef.current);
+        updateSectionIcons(lastProgressRef.current);
       }
     };
 
@@ -253,8 +264,167 @@ export const HorizontalTimeline = () => {
     };
   }, []);
 
+  // Function to update section icons based on progress
+  const updateSectionIcons = (progress: number) => {
+    // Calculate which section we're in (0, 1, or 2)
+    const totalSections = 3;
+    const currentActiveSection = Math.round(progress * (totalSections - 1));
+
+    // Loop through all icons and update their positions
+    for (let i = 0; i < totalSections; i++) {
+      const icon = document.getElementById(`section-icon-${i}`);
+      if (!icon) continue;
+
+      let positionClass = '';
+
+      // Determine if icon should be visible and where
+      if (i === currentActiveSection) {
+        // Current section icon is in center
+        positionClass = 'current';
+      } else if (i === currentActiveSection + 1) {
+        // Next section icon is to the right
+        positionClass = 'next';
+      } else if (i === currentActiveSection - 1) {
+        // Previous section icon is to the left
+        positionClass = 'prev';
+      } else {
+        // Other icons are hidden
+        positionClass = 'hidden';
+      }
+
+      // Remove all position classes and add the new one
+      icon.classList.remove(
+        'icon-current',
+        'icon-next',
+        'icon-prev',
+        'icon-hidden',
+      );
+      icon.classList.add(`icon-${positionClass}`);
+    }
+  };
+
+  // Initialize section icons once
+  useEffect(() => {
+    // Start bounce animation when active section changes
+    const icon = document.getElementById(`section-icon-${activeSection}`);
+    if (icon) {
+      // Reset animation by removing and adding the class
+      icon.classList.remove('bounce-animation');
+      void icon.offsetWidth; // Trigger reflow to restart animation
+      icon.classList.add('bounce-animation');
+    }
+  }, [activeSection]);
+
+  // Get icon component based on section index
+  const getIconComponent = (index: number) => {
+    switch (index) {
+      case 0:
+        return <Circle size={22} color='white' />;
+      case 1:
+        return <Square size={22} color='white' />;
+      case 2:
+        return <Triangle size={22} color='white' />;
+      default:
+        return <Circle size={22} color='white' />;
+    }
+  };
+
   return (
-    <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden bottom-0 lg:min-h-[32rem] lg:overflow-visible'>
+    <div
+      className='pointer-events-none absolute inset-0 z-50 overflow-hidden bottom-0 lg:min-h-[32rem] lg:overflow-visible'
+      ref={timelineContainerRef}
+    >
+      {/* CSS for section icons */}
+      <style jsx global>{`
+        .section-icon {
+          position: absolute;
+          top: 28px; /* Position directly under the timeline teeth */
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transform-origin: center;
+          z-index: 60;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Current section icon (center) */
+        .icon-current {
+          left: 50%;
+          transform: translateX(-50%) scale(1);
+          width: 40px;
+          height: 40px;
+          opacity: 1;
+          transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Next section icon (right) */
+        .icon-next {
+          left: calc(50% + 70px);
+          transform: translateX(0) scale(0.7);
+          width: 32px;
+          height: 32px;
+          opacity: 0.7;
+          transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Previous section icon (left) */
+        .icon-prev {
+          left: calc(50% - 70px);
+          transform: translateX(-100%) scale(0.7);
+          width: 32px;
+          height: 32px;
+          opacity: 0.7;
+          transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Hidden icons */
+        .icon-hidden {
+          opacity: 0;
+          transform: translateX(0) scale(0.5);
+          transition: all 0.7s ease-out;
+          pointer-events: none;
+        }
+
+        /* Bouncing animation */
+        @keyframes bounce {
+          0%,
+          100% {
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+          50% {
+            transform: translateX(-50%) translateY(-5px) scale(1.05);
+          }
+        }
+
+        .bounce-animation {
+          animation: bounce 0.7s ease-in-out;
+        }
+
+        .section-icon-inner {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+        }
+      `}</style>
+
+      {/* Section Icons */}
+      {sectionGradients.map((colors, index) => (
+        <div
+          key={index}
+          id={`section-icon-${index}`}
+          className={`section-icon ${index === 0 ? 'icon-current' : index === 1 ? 'icon-next' : 'icon-hidden'}`}
+          style={{
+            backgroundColor: colors[1],
+          }}
+        >
+          <div className='section-icon-inner'>{getIconComponent(index)}</div>
+        </div>
+      ))}
+
       <div
         className='horizontal-timeline-line absolute top-0 inset-y-full right-0 w-full h-px'
         style={{
