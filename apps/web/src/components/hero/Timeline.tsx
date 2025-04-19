@@ -1,7 +1,8 @@
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import * as React from 'react';
 
 export function Timeline() {
-  // eslint-disable-next-line no-undef
+  // Original Timeline implementation
   let id = useId();
 
   return (
@@ -26,24 +27,155 @@ export function Timeline() {
 }
 
 export const HorizontalTimeline = () => {
-  let id = useId();
-  let maskId = `mask-${id}`;
+  const id = useId();
+  const maskId = `mask-${id}`;
+  const timelineRef = useRef<SVGSVGElement>(null);
+  const teethRef = useRef<SVGGElement>(null);
+  const lastProgressRef = useRef(0);
+
+  // Set up the initial teeth
+  useEffect(() => {
+    const svg = timelineRef.current;
+    const teethGroup = teethRef.current;
+
+    if (!svg || !teethGroup) return;
+
+    // Clear any existing teeth
+    while (teethGroup.firstChild) {
+      teethGroup.removeChild(teethGroup.firstChild);
+    }
+
+    // Create teeth with 8px spacing (matching original pattern)
+    const spacing = 8;
+    const viewportWidth = window.innerWidth;
+    const numberOfTeeth = Math.ceil(viewportWidth / spacing) + 20; // Add extra teeth for smooth animation
+
+    for (let i = 0; i < numberOfTeeth; i++) {
+      const x = i * spacing;
+      const line = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'line',
+      );
+      line.setAttribute('x1', x.toString());
+      line.setAttribute('y1', '0');
+      line.setAttribute('x2', x.toString());
+      line.setAttribute('y2', '6'); // Initial height
+      line.setAttribute('stroke', 'white');
+      line.setAttribute('stroke-width', '1');
+      line.setAttribute('data-index', i.toString());
+
+      teethGroup.appendChild(line);
+    }
+
+    // Initial teeth size adjustment
+    updateTeethSizes(0.5); // Start with middle teeth larger
+  }, []);
+
+  // Function to update teeth heights based on their position using quadratic (x²) function
+  const updateTeethSizes = (scrollProgress: number) => {
+    const teethGroup = teethRef.current;
+    if (!teethGroup) return;
+
+    const teeth = teethGroup.querySelectorAll('line');
+    const viewportWidth = window.innerWidth;
+    const centerPos = viewportWidth / 2;
+
+    teeth.forEach((tooth) => {
+      const x = parseFloat(tooth.getAttribute('x1') || '0');
+
+      // Calculate normalized distance from center (0 to 1)
+      // Use 40% of viewport as our normalization range for a more pronounced effect
+      const distanceFromCenter =
+        Math.abs(x - centerPos) / (viewportWidth * 0.4);
+      const clampedDistance = Math.min(1, distanceFromCenter); // Clamp to 1
+
+      // Apply quadratic function (x²) - this gives a more natural curve than linear
+      // but less extreme than higher exponents
+      const normalizedDistance = Math.pow(clampedDistance, 2);
+
+      // Calculate height: small at edges, large in middle
+      const minHeight = 6; // Original height
+      const maxHeight = 12; // Significantly taller in center (4x)
+      const height = maxHeight - normalizedDistance * (maxHeight - minHeight);
+
+      // Update the height
+      tooth.setAttribute('y2', height.toString());
+
+      // Keep the original white color
+      tooth.setAttribute('stroke', 'white');
+
+      // Adjust opacity for subtle emphasis
+      const opacity = 0.4 + (1 - normalizedDistance) * 0.6;
+      tooth.setAttribute('stroke-opacity', opacity.toString());
+    });
+  };
+
+  // Handle scrolling animation
+  useEffect(() => {
+    const handleTimelineScroll = (event: CustomEvent) => {
+      const { progress } = event.detail;
+
+      if (!teethRef.current) return;
+
+      // Calculate the animation based on progress difference
+      const progressDelta = progress - lastProgressRef.current;
+      lastProgressRef.current = progress;
+
+      // Move teeth one by one
+      const teeth = teethRef.current.querySelectorAll('line');
+      const viewportWidth = window.innerWidth;
+      const moveAmount = progressDelta * 40; // Adjust for desired speed
+
+      teeth.forEach((tooth) => {
+        // Get current position and calculate new position
+        const currentX = parseFloat(tooth.getAttribute('x1') || '0');
+        let newX = currentX - moveAmount; // Move in opposite direction of scroll
+
+        // Wrap around if needed
+        if (newX < -8) newX += viewportWidth + 16;
+        if (newX > viewportWidth + 8) newX -= viewportWidth + 16;
+
+        // Update position
+        tooth.setAttribute('x1', newX.toString());
+        tooth.setAttribute('x2', newX.toString());
+      });
+
+      // Update teeth sizes based on their new positions
+      updateTeethSizes(progress);
+    };
+
+    document.addEventListener(
+      'timeline-scroll',
+      handleTimelineScroll as EventListener,
+    );
+
+    // Also respond to window resize
+    const handleResize = () => {
+      if (teethRef.current) {
+        updateTeethSizes(lastProgressRef.current);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      document.removeEventListener(
+        'timeline-scroll',
+        handleTimelineScroll as EventListener,
+      );
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   return (
     <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden bottom-0 lg:min-h-[32rem] lg:overflow-visible'>
+      <div className='absolute top-0 inset-y-full right-0 bg-gradient-to-r from-transparent via-blue-500 to-transparent w-full h-px' />
       <svg
-        className='absolute left-0 top-0 h-2 w-full lg:mt-1'
+        ref={timelineRef}
+        className='absolute left-0 top-0 h-7 w-full lg:mt-1'
         aria-hidden='true'
       >
         <defs>
-          <pattern id={id} width='8' height='6' patternUnits='userSpaceOnUse'>
-            <path
-              d='M0 0V6M8 0V6'
-              className='stroke-current text-white'
-              fill='none'
-            />
-          </pattern>
-
           <linearGradient
             id='gradient'
             gradientUnits='userSpaceOnUse'
@@ -67,13 +199,9 @@ export const HorizontalTimeline = () => {
             />
           </mask>
         </defs>
-        <rect
-          width='100%'
-          height='100%'
-          fill={`url(#${id})`}
-          fillOpacity='0.4'
-          mask={`url(#${maskId})`}
-        />
+
+        {/* Group for all teeth with mask applied */}
+        <g ref={teethRef} mask={`url(#${maskId})`}></g>
       </svg>
     </div>
   );
