@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import * as React from 'react';
 
 export function Timeline() {
@@ -31,7 +31,15 @@ export const HorizontalTimeline = () => {
   const maskId = `mask-${id}`;
   const timelineRef = useRef<SVGSVGElement>(null);
   const teethRef = useRef<SVGGElement>(null);
+  const gradientRef = useRef<SVGLinearGradientElement>(null);
   const lastProgressRef = useRef(0);
+
+  // Define section colors that match the SectionBackground colors
+  const sectionGradients = [
+    ['#3B82F6', '#60A5FA', '#93C5FD'], // Blue gradient for section 1
+    ['#10B981', '#34D399', '#6EE7B7'], // Green gradient for section 2
+    ['#8B5CF6', '#A78BFA', '#C4B5FD'], // Purple gradient for section 3
+  ];
 
   // Set up the initial teeth
   useEffect(() => {
@@ -101,7 +109,7 @@ export const HorizontalTimeline = () => {
       // Update the height
       tooth.setAttribute('y2', height.toString());
 
-      // Keep the original white color
+      // Keep teeth white
       tooth.setAttribute('stroke', 'white');
 
       // Adjust opacity for subtle emphasis
@@ -110,12 +118,70 @@ export const HorizontalTimeline = () => {
     });
   };
 
+  // Helper functions for color interpolation
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : null;
+  };
+
+  const componentToHex = (c: number) => {
+    const hex = c.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  const rgbToHex = (r: number, g: number, b: number) => {
+    return '#' + componentToHex(r) + componentToHex(g) + componentToHex(b);
+  };
+
+  // Function to interpolate between colors based on progress
+  const interpolateColors = (progress: number) => {
+    // Determine which sections we're between
+    const totalSections = sectionGradients.length;
+    const exactPosition = progress * (totalSections - 1);
+    const lowerIndex = Math.floor(exactPosition);
+    const upperIndex = Math.min(lowerIndex + 1, totalSections - 1);
+
+    // Calculate how far we are between these two sections (0-1)
+    const sectionProgress = exactPosition - lowerIndex;
+
+    // Get the colors for both sections
+    const lowerColors = sectionGradients[lowerIndex];
+    const upperColors = sectionGradients[upperIndex];
+
+    // Interpolate between the colors
+    return lowerColors.map((startColor, i) => {
+      const endColor = upperColors[i];
+      const startRGB = hexToRgb(startColor);
+      const endRGB = hexToRgb(endColor);
+
+      if (!startRGB || !endRGB) return startColor;
+
+      const r = Math.round(
+        startRGB.r + (endRGB.r - startRGB.r) * sectionProgress,
+      );
+      const g = Math.round(
+        startRGB.g + (endRGB.g - startRGB.g) * sectionProgress,
+      );
+      const b = Math.round(
+        startRGB.b + (endRGB.b - startRGB.b) * sectionProgress,
+      );
+
+      return rgbToHex(r, g, b);
+    });
+  };
+
   // Handle scrolling animation
   useEffect(() => {
     const handleTimelineScroll = (event: CustomEvent) => {
       const { progress } = event.detail;
 
-      if (!teethRef.current) return;
+      if (!teethRef.current || !gradientRef.current) return;
 
       // Calculate the animation based on progress difference
       const progressDelta = progress - lastProgressRef.current;
@@ -142,6 +208,26 @@ export const HorizontalTimeline = () => {
 
       // Update teeth sizes based on their new positions
       updateTeethSizes(progress);
+
+      // Smoothly update gradient colors based on the scroll progress
+      const interpolatedColors = interpolateColors(progress);
+
+      // Update the gradient stops directly
+      const stops = gradientRef.current.querySelectorAll('stop');
+      stops[0].setAttribute('stop-color', interpolatedColors[0]);
+      stops[1].setAttribute('stop-color', interpolatedColors[1]);
+      stops[2].setAttribute('stop-color', interpolatedColors[2]);
+
+      // Also update the horizontal line gradient
+      const horizontalLine = document.querySelector(
+        '.horizontal-timeline-line',
+      );
+      if (horizontalLine) {
+        horizontalLine.setAttribute(
+          'style',
+          `background: linear-gradient(to right, transparent, ${interpolatedColors[1]}, transparent)`,
+        );
+      }
     };
 
     document.addEventListener(
@@ -169,7 +255,12 @@ export const HorizontalTimeline = () => {
 
   return (
     <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden bottom-0 lg:min-h-[32rem] lg:overflow-visible'>
-      <div className='absolute top-0 inset-y-full right-0 bg-gradient-to-r from-transparent via-blue-500 to-transparent w-full h-px' />
+      <div
+        className='horizontal-timeline-line absolute top-0 inset-y-full right-0 w-full h-px'
+        style={{
+          background: `linear-gradient(to right, transparent, ${sectionGradients[0][1]}, transparent)`,
+        }}
+      />
       <svg
         ref={timelineRef}
         className='absolute left-0 top-0 h-7 w-full lg:mt-1'
@@ -178,15 +269,28 @@ export const HorizontalTimeline = () => {
         <defs>
           <linearGradient
             id='gradient'
+            ref={gradientRef}
             gradientUnits='userSpaceOnUse'
             x1='0%'
             y1='0%'
             x2='100%'
             y2='0%'
           >
-            <stop offset='0%' stopColor='white' stopOpacity='0' />
-            <stop offset='50%' stopColor='white' stopOpacity='1' />
-            <stop offset='100%' stopColor='white' stopOpacity='0' />
+            <stop
+              offset='0%'
+              stopColor={sectionGradients[0][0]}
+              stopOpacity='0'
+            />
+            <stop
+              offset='50%'
+              stopColor={sectionGradients[0][1]}
+              stopOpacity='1'
+            />
+            <stop
+              offset='100%'
+              stopColor={sectionGradients[0][2]}
+              stopOpacity='0'
+            />
           </linearGradient>
 
           <mask id={maskId}>
