@@ -1,5 +1,6 @@
-// BlurredGeometricBackground.tsx
+// ExperienceBackground.tsx
 import React, { useEffect, useState, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
 type ShapeType = 'circle' | 'square' | 'triangle' | 'hexagon';
 
@@ -17,28 +18,33 @@ interface Shape {
   rotation: number;
 }
 
-interface BlurredGeometricBackgroundProps {
+interface ExperienceBackgroundProps {
   colors: string[];
   shapes?: ShapeType[];
   count?: number;
   blurRange?: [string, string]; // min and max blur values
   opacityRange?: [string, string]; // min and max opacity values
   seed?: string; // Optional seed value for deterministic generation
+  position: number; // Section position (0, 1, 2, etc.)
+  currentSection: number; // Which section is currently active
 }
 
-export const BlurredGeometricBackground: React.FC<
-  BlurredGeometricBackgroundProps
-> = ({
+export const ExperienceBackground: React.FC<ExperienceBackgroundProps> = ({
   colors,
   shapes = ['circle', 'square', 'triangle', 'hexagon'],
   count = 4,
   blurRange = ['80px', '150px'],
   opacityRange = ['0.3', '0.7'],
   seed = 'default',
+  position,
+  currentSection,
 }) => {
   // Use a ref to track if shapes have been generated
   const shapesGenerated = useRef(false);
   const [shapeElements, setShapeElements] = useState<Shape[]>([]);
+
+  // Calculate the horizontal offset based on current section
+  const horizontalOffset = `${(position - currentSection) * 100}vw`;
 
   // Pseudo-random number generator with seed for consistent generation
   const createSeededRandom = (seed: string) => {
@@ -65,34 +71,37 @@ export const BlurredGeometricBackground: React.FC<
       // Generate shapes with consistent positions
       for (let i = 0; i < count; i++) {
         // Explicitly cast to ensure we're getting a ShapeType
-        const shapeIndex = Math.floor(seededRandom() * shapes.length);
-        const randomShape: ShapeType = shapes[shapeIndex];
+        // Fix the issue with negative indices by ensuring positive values
+        const shapeIndex =
+          Math.abs(Math.floor(seededRandom() * shapes.length)) % shapes.length;
+        const randomShape: ShapeType = shapes[shapeIndex]!;
 
-        const colorIndex = Math.floor(seededRandom() * colors.length);
-        const randomColor: string = colors[colorIndex];
+        // Similarly, fix other random index calculations:
+        const colorIndex =
+          Math.abs(Math.floor(seededRandom() * colors.length)) % colors.length;
+        const randomColor: string = colors[colorIndex]!;
 
         // Random size between 200px and 500px
-        const randomSize = Math.floor(seededRandom() * 300) + 200;
+        const randomSize = Math.abs(Math.floor(seededRandom() * 300)) + 200;
 
         // Random position within the viewport (0-100%)
-        const randomTop = `${Math.floor(seededRandom() * 100)}%`;
-        const randomLeft = `${Math.floor(seededRandom() * 100)}%`;
+        const randomTop = `${Math.abs(Math.floor(seededRandom() * 100))}%`;
+        const randomLeft = `${Math.abs(Math.floor(seededRandom() * 100))}%`;
 
         // Random blur between min and max
         const minBlur = parseInt(blurRange[0]);
         const maxBlur = parseInt(blurRange[1]);
-        const randomBlur = `${Math.floor(seededRandom() * (maxBlur - minBlur)) + minBlur}px`;
+        const randomBlur = `${Math.abs(Math.floor(seededRandom() * (maxBlur - minBlur)) + minBlur)}px`;
 
         // Random opacity between min and max
         const minOpacity = parseFloat(opacityRange[0]);
         const maxOpacity = parseFloat(opacityRange[1]);
-        const randomOpacity = (
-          seededRandom() * (maxOpacity - minOpacity) +
-          minOpacity
+        const randomOpacity = Math.abs(
+          seededRandom() * (maxOpacity - minOpacity) + minOpacity,
         ).toFixed(2);
 
         // Random rotation between 0 and 360 degrees
-        const randomRotation = Math.floor(seededRandom() * 360);
+        const randomRotation = Math.abs(Math.floor(seededRandom() * 360)) % 360;
 
         generatedShapes.push({
           id: i,
@@ -125,6 +134,10 @@ export const BlurredGeometricBackground: React.FC<
       filter: `blur(${shape.blur})`,
       opacity: shape.opacity,
     };
+
+    if (position === 1) {
+      console.log(shape);
+    }
 
     switch (shape.type) {
       case 'circle':
@@ -186,7 +199,14 @@ export const BlurredGeometricBackground: React.FC<
   };
 
   return (
-    <div className='absolute inset-0' style={{ zIndex: 0 }}>
+    <div
+      className={cn(
+        'absolute inset-0 z-40 transition-transform duration-700 ease-in-out w-screen pointer-events-none',
+      )}
+      style={{
+        transform: `translateX(${horizontalOffset})`,
+      }}
+    >
       {shapeElements.map((shape) => renderShape(shape))}
     </div>
   );

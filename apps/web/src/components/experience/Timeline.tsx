@@ -1,33 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import * as React from 'react';
-import { Circle, Square, Triangle } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
+import { vipModelSurvey } from '@/constant/questions';
 
-export function Timeline() {
-  // Original Timeline implementation
-  let id = useId();
-
-  return (
-    <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden lg:right-[calc(max(2rem,50%-38rem)+40rem)] lg:min-w-[32rem] lg:overflow-visible'>
-      <svg
-        className='absolute left-[max(0px,calc(50%-18.125rem))] top-0 h-full w-1.5 lg:left-full lg:ml-1 xl:left-auto xl:right-1 xl:ml-0'
-        aria-hidden='true'
-      >
-        <defs>
-          <pattern id={id} width='6' height='8' patternUnits='userSpaceOnUse'>
-            <path
-              d='M0 0H6M0 8H6'
-              className='stroke-sky-900/10 xl:stroke-white/10 dark:stroke-white/10'
-              fill='none'
-            />
-          </pattern>
-        </defs>
-        <rect width='100%' height='100%' fill={`url(#${id})`} />
-      </svg>
-    </div>
-  );
-}
-
-export const HorizontalTimeline = () => {
+export const ExperienceTimeline = () => {
   const id = useId();
   const maskId = `mask-${id}`;
   const timelineRef = useRef<SVGSVGElement>(null);
@@ -37,12 +13,15 @@ export const HorizontalTimeline = () => {
   const timelineContainerRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState(0);
 
-  // Define section colors that match the SectionBackground colors
-  const sectionGradients = [
-    ['#3B82F6', '#60A5FA', '#93C5FD'], // Blue gradient for section 1
-    ['#10B981', '#34D399', '#6EE7B7'], // Green gradient for section 2
-    ['#8B5CF6', '#A78BFA', '#C4B5FD'], // Purple gradient for section 3
-  ];
+  // Function to render the icon with proper sizing and color
+  const renderIcon = (index: number) => {
+    if (index >= vipModelSurvey.sections.length) {
+      return <HelpCircle size={22} color='white' />; // Default fallback
+    }
+
+    const IconComponent = vipModelSurvey.sections?.[index]?.icon || HelpCircle;
+    return <IconComponent size={22} color='white' />;
+  };
 
   // Set up the initial teeth
   useEffect(() => {
@@ -145,7 +124,7 @@ export const HorizontalTimeline = () => {
   // Function to interpolate between colors based on progress
   const interpolateColors = (progress: number) => {
     // Determine which sections we're between
-    const totalSections = sectionGradients.length;
+    const totalSections = vipModelSurvey.sections.length;
     const exactPosition = progress * (totalSections - 1);
     const lowerIndex = Math.floor(exactPosition);
     const upperIndex = Math.min(lowerIndex + 1, totalSections - 1);
@@ -154,8 +133,16 @@ export const HorizontalTimeline = () => {
     const sectionProgress = exactPosition - lowerIndex;
 
     // Get the colors for both sections
-    const lowerColors = sectionGradients[lowerIndex];
-    const upperColors = sectionGradients[upperIndex];
+    const lowerColors = [
+      vipModelSurvey.sections[lowerIndex].colors.gradientFrom,
+      vipModelSurvey.sections[lowerIndex].colors.gradientTo,
+      vipModelSurvey.sections[lowerIndex].colors.tertiary,
+    ];
+    const upperColors = [
+      vipModelSurvey.sections[upperIndex].colors.gradientFrom,
+      vipModelSurvey.sections[upperIndex].colors.gradientTo,
+      vipModelSurvey.sections[upperIndex].colors.tertiary,
+    ];
 
     // Interpolate between the colors
     return lowerColors.map((startColor, i) => {
@@ -233,7 +220,7 @@ export const HorizontalTimeline = () => {
       }
 
       // Update active section for icon display
-      const totalSections = 3;
+      const totalSections = vipModelSurvey.sections.length;
       setActiveSection(Math.round(progress * (totalSections - 1)));
 
       // Update section icons positions
@@ -266,8 +253,8 @@ export const HorizontalTimeline = () => {
 
   // Function to update section icons based on progress
   const updateSectionIcons = (progress: number) => {
-    // Calculate which section we're in (0, 1, or 2)
-    const totalSections = 3;
+    // Calculate which section we're in
+    const totalSections = vipModelSurvey.sections.length;
     const currentActiveSection = Math.round(progress * (totalSections - 1));
 
     // Loop through all icons and update their positions
@@ -314,20 +301,6 @@ export const HorizontalTimeline = () => {
       icon.classList.add('bounce-animation');
     }
   }, [activeSection]);
-
-  // Get icon component based on section index
-  const getIconComponent = (index: number) => {
-    switch (index) {
-      case 0:
-        return <Circle size={22} color='white' />;
-      case 1:
-        return <Square size={22} color='white' />;
-      case 2:
-        return <Triangle size={22} color='white' />;
-      default:
-        return <Circle size={22} color='white' />;
-    }
-  };
 
   return (
     <div
@@ -412,23 +385,32 @@ export const HorizontalTimeline = () => {
       `}</style>
 
       {/* Section Icons */}
-      {sectionGradients.map((colors, index) => (
-        <div
-          key={index}
-          id={`section-icon-${index}`}
-          className={`section-icon ${index === 0 ? 'icon-current' : index === 1 ? 'icon-next' : 'icon-hidden'}`}
-          style={{
-            backgroundColor: colors[1],
-          }}
-        >
-          <div className='section-icon-inner'>{getIconComponent(index)}</div>
-        </div>
-      ))}
+      {vipModelSurvey.sections.map((section, index) => {
+        // Determine initial position class
+        let initialClass = 'icon-hidden';
+        if (index === 0) initialClass = 'icon-current';
+        else if (index === 1) initialClass = 'icon-next';
+        else if (index === vipModelSurvey.sections.length - 1 && index === 2)
+          initialClass = 'icon-prev';
+
+        return (
+          <div
+            key={index}
+            id={`section-icon-${index}`}
+            className={`section-icon ${initialClass}`}
+            style={{
+              backgroundColor: section.colors.gradientTo,
+            }}
+          >
+            <div className='section-icon-inner'>{renderIcon(index)}</div>
+          </div>
+        );
+      })}
 
       <div
         className='horizontal-timeline-line absolute top-0 inset-y-full right-0 w-full h-px'
         style={{
-          background: `linear-gradient(to right, transparent, ${sectionGradients[0][1]}, transparent)`,
+          background: `linear-gradient(to right, transparent, ${vipModelSurvey.sections[0].colors.gradientTo}, transparent)`,
         }}
       />
       <svg
@@ -448,17 +430,17 @@ export const HorizontalTimeline = () => {
           >
             <stop
               offset='0%'
-              stopColor={sectionGradients[0][0]}
+              stopColor={vipModelSurvey.sections?.[0]?.colors?.gradientFrom}
               stopOpacity='0'
             />
             <stop
               offset='50%'
-              stopColor={sectionGradients[0][1]}
+              stopColor={vipModelSurvey.sections?.[0]?.colors?.gradientTo}
               stopOpacity='1'
             />
             <stop
               offset='100%'
-              stopColor={sectionGradients[0][2]}
+              stopColor={vipModelSurvey.sections?.[0]?.colors?.tertiary}
               stopOpacity='0'
             />
           </linearGradient>

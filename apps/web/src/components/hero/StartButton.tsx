@@ -91,7 +91,7 @@ export const StartButton = () => {
           transition: 'opacity 0.4s cubic-bezier(.5, 1, .89, 1)',
         }}
       >
-        <p
+        <div
           className='transition-none text-md font-medium tracking-widest leading-none' // loader__start
           data-animation='text'
         >
@@ -147,7 +147,7 @@ export const StartButton = () => {
               n
             </div>
           </div>
-        </p>
+        </div>
       </div>
     </button>
   );

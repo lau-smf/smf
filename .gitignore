@@ -41,4 +41,4 @@ yarn-error.log*
 .idea
 /**/*/.idea
 pnpm-lock.yaml
-/.idea
+/.idea/**/*

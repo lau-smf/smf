@@ -1,27 +1,38 @@
+'use client';
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/utils/twcn';
 
 export const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const audio = useMemo(() => new Audio('/music/music.mp3'), []);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Create audio in a useEffect to ensure it only runs client-side
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize audio on the client side only
+    const audioElement = new Audio('/music/music.mp3');
+    audioElement.loop = true;
+    audioElement.volume = 0.1;
+    setAudio(audioElement);
+
+    // Cleanup function
+    return () => {
+      audioElement.pause();
+    };
+  }, []);
+
   const togglePlayPause = () => {
+    if (!audio) return;
+
     if (isPlaying) {
       audio.pause();
     } else {
-      audio.play();
+      void audio.play();
     }
     setIsPlaying(!isPlaying);
   };
-
-  useEffect(() => {
-    return () => {
-      audio.loop = true;
-      audio.volume = 0.1;
-      audio.pause();
-    };
-  }, []);
 
   return (
     <button
