@@ -1,0 +1,49 @@
+###
+POST https://model-268826743579.europe-west1.run.app/recommend
+Accept: application/json
+Content-Type: application/json
+
+{
+  "interest_fields": [
+    "arts"
+  ],
+  "qualities": [
+    "observer",
+    "performer"
+  ],
+  "free_time_activities": [
+    "experimenting",
+    "building"
+  ],
+  "intrinsic_motivation": 3,
+  "identified_regulation": 4,
+  "introjected_regulation": 4,
+  "integrated_regulation": 4,
+  "amotivation": 3,
+  "external_regulation": 3
+}
+
+###
+POST http://localhost:8000/recommend
+Accept: application/json
+Content-Type: application/json
+
+{
+  "interest_fields": [
+    "arts"
+  ],
+  "qualities": [
+    "observer",
+    "performer"
+  ],
+  "free_time_activities": [
+    "experimenting",
+    "building"
+  ],
+  "intrinsic_motivation": 3,
+  "identified_regulation": 4,
+  "introjected_regulation": 4,
+  "integrated_regulation": 4,
+  "amotivation": 3,
+  "external_regulation": 3
+}

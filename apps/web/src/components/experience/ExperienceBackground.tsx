@@ -135,10 +135,6 @@ export const ExperienceBackground: React.FC<ExperienceBackgroundProps> = ({
       opacity: shape.opacity,
     };
 
-    if (position === 1) {
-      console.log(shape);
-    }
-
     switch (shape.type) {
       case 'circle':
         return (

@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import '@/utils/env';
 
 import '@/styles/globals.css';
 import { HeroComponent } from '@/components/hero/Hero';
@@ -12,15 +11,18 @@ import { HiLightBulb } from 'react-icons/hi';
 import { ExperienceBackground } from '@/components/experience/ExperienceBackground';
 import { ExperienceTimeline } from '@/components/experience/Timeline';
 import { vipModelSurvey } from '@/constant/questions';
-import { Slider } from '@/components/ui/slider';
 import { CheckboxGroup } from '@/components/experience/CheckboxGroup';
 import { SentimentSlider } from '@/components/experience/SentimentSlider';
-// Add this import at the top with other imports
 import { ChipsGroup } from '@/components/experience/ChipsGroup';
+import axios from 'axios';
 
+// Inside your HomePage component, add this state
 export default function HomePage() {
   const experience = useGlobalStore.useExperience();
   const hasScrolledToAnimation = useRef(false);
+
+  const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Inside your component function
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,8 +51,6 @@ export default function HomePage() {
       }
     });
   });
-
-  console.log(sectionInputs);
 
   // Add these state variables to track the warning state
   const [showWarning, setShowWarning] = useState(false);
@@ -232,7 +232,6 @@ export default function HomePage() {
 
     if (hasValidInput) {
       // Handle the submission
-      console.log(`Section ${sectionIndex + 1} answer:`, input);
 
       // Move to next section if not on the last one
       if (sectionIndex < totalSections - 1) {
@@ -360,8 +359,83 @@ export default function HomePage() {
     showWarning,
   ]);
 
-  // In your renderQuestion function, add a case for 'chips' type
-  // Replace the renderQuestion function in page.tsx with this:
+  // Add this function to your component
+  const prepareApiRequest = () => {
+    // Extract the data from sectionInputs based on survey sections
+    const interestFields = Array.from(sectionInputs[0] as Set<string>);
+    const qualities = Array.from(sectionInputs[1] as Set<string>);
+    const freeTimeActivities = Array.from(sectionInputs[2] as Set<string>);
+
+    // Map motivation scores from section ratings
+    // Intrinsic motivation - section 3
+    const intrinsicMotivation = Number(sectionInputs[3]);
+    // Identified regulation - section 4
+    const identifiedRegulation = Number(sectionInputs[4]);
+    // Introjected regulation - section 5
+    const introjectedRegulation = Number(sectionInputs[5]);
+    // Integrated regulation - section 6
+    const integratedRegulation = Number(sectionInputs[6]);
+    // Amotivation - section 7
+    const amotivation = Number(sectionInputs[7]);
+    // External regulation - section 8
+    const externalRegulation = Number(sectionInputs[8]);
+
+    return {
+      interest_fields: interestFields,
+      qualities: qualities,
+      free_time_activities: freeTimeActivities,
+      intrinsic_motivation: intrinsicMotivation,
+      identified_regulation: identifiedRegulation,
+      introjected_regulation: introjectedRegulation,
+      integrated_regulation: integratedRegulation,
+      amotivation: amotivation,
+      external_regulation: externalRegulation,
+    };
+  };
+
+  // Add this function to your component
+  const handleFinalSubmit = async () => {
+    // Check if all sections have valid input
+    const allSectionsValid = Array.from(
+      { length: totalSections },
+      (_, i) => i,
+    ).every((index) => hasValidInput(index));
+
+    if (!allSectionsValid) {
+      triggerWarning();
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      // Prepare the API request data
+      const requestData = prepareApiRequest();
+
+      console.log(JSON.stringify(requestData, null, 2));
+      // Call the API
+      const response = await axios.post(
+        // 'https://model-268826743579.europe-west1.run.app/recommend',
+        'http://localhost:8000/recommend',
+        requestData,
+      );
+
+      // Store the recommendation
+      setRecommendation(response.data.recommendation);
+
+      // Scroll to the recommendation section
+      setTimeout(() => {
+        document.getElementById('recommendation-section')?.scrollIntoView({
+          behavior: 'smooth',
+        });
+      }, 500);
+    } catch (error) {
+      console.error('Error submitting survey:', error);
+      // You might want to show an error message to the user
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const renderQuestion = (section: any, index: number) => {
     const isCurrentSection = index === currentSection;
@@ -444,13 +518,19 @@ export default function HomePage() {
 
             <div className='pt-6'>
               <button
-                onClick={() => handleSubmit(index)}
+                onClick={() => {
+                  if (index === totalSections - 1) {
+                    void handleFinalSubmit();
+                    return;
+                  }
+                  handleSubmit(index);
+                }}
                 className='px-4 py-2 rounded-lg transition-all duration-300'
                 style={{
                   background: `linear-gradient(to right, ${section.colors.gradientFrom}, ${section.colors.gradientTo})`,
                 }}
               >
-                Continue
+                {index === totalSections - 1 ? 'Submit' : 'Continue'}
               </button>
             </div>
           </div>
@@ -484,6 +564,65 @@ export default function HomePage() {
           </div>
         );
     }
+  };
+
+  // Add this function inside your HomePage component
+  const LoadingAnimation = () => {
+    return (
+      <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+        <div className='bg-gray-900 p-8 rounded-xl shadow-2xl flex flex-col items-center'>
+          <div className='loading-spinner mb-4'>
+            <div className='spinner'></div>
+          </div>
+          <p className='text-white text-lg'>
+            Generating your personalized recommendation...
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // Add this function inside your HomePage component
+  const RecommendationSection = () => {
+    if (!recommendation) return null;
+
+    return (
+      <section
+        id='recommendation-section'
+        className='min-h-screen w-full flex items-center justify-center p-6 bg-gray-950'
+      >
+        <div className='max-w-2xl w-full p-8 bg-black/30 backdrop-blur-md rounded-xl shadow-xl'>
+          <div className='animate-fadeIn'>
+            <div className='flex items-center justify-center mb-6'>
+              <div className='w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center'>
+                <HiLightBulb className='text-white text-3xl' />
+              </div>
+            </div>
+
+            <h2 className='text-3xl font-bold mb-6 text-center text-white'>
+              Your Personalized Recommendation
+            </h2>
+
+            <div className='prose prose-invert max-w-none'>
+              <div className='whitespace-pre-wrap text-white/90 leading-relaxed'>
+                {typeof recommendation === 'object'
+                  ? JSON.stringify(recommendation, null, 2)
+                  : recommendation}
+              </div>
+            </div>
+
+            <div className='mt-8 flex justify-center'>
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className='px-6 py-3 rounded-lg transition-all duration-300 bg-gradient-to-r from-purple-500 to-blue-500 text-white'
+              >
+                Back to Top
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -554,9 +693,52 @@ export default function HomePage() {
         .animate-pulse {
           animation: bulbPulse 0.8s ease-in-out infinite;
         }
+
+        /* Add to your existing style jsx block */
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+
+        .loading-spinner {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .spinner {
+          width: 50px;
+          height: 50px;
+          border: 5px solid rgba(255, 255, 255, 0.2);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s ease-in-out infinite;
+        }
+
+        /* Add to your existing style jsx block */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
       `}</style>
 
       <HeroComponent />
+
+      {isSubmitting && <LoadingAnimation />}
 
       <div
         id='horizontal-container'
@@ -681,6 +863,8 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {recommendation && <RecommendationSection />}
     </main>
   );
 }
